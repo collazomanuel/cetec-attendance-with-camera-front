@@ -8,8 +8,10 @@ import Courses from './courses';
 
 import "@tensorflow/tfjs-core";
 import "@tensorflow/tfjs-backend-cpu";
+import "@tensorflow/tfjs-backend-webgl";
 
-import * as blazeface from "@tensorflow-models/blazeface";
+//import * as blazeface from "@tensorflow-models/blazeface";
+import * as faceLandmarksDetection from "@tensorflow-models/face-landmarks-detection";
 
 import logo from './logo.svg';
 
@@ -18,16 +20,17 @@ const height = 300;
 
 const drawFaceContainer = (ctx, detections) => {
   detections.forEach((detection) => {
-    const { topLeft, bottomRight } = detection;
+    const { topLeft, bottomRight } = detection['boundingBox'];
     const start = topLeft;
     const end = bottomRight;
     const size = [end[0] - start[0], end[1] - start[1]];
     ctx.fillStyle = "rgba(255, 0, 0, 0.5)";
     ctx.fillRect(start[0], start[1], size[0], size[1]);
-
+    
+    /* 
     if (true) {
       const landmarks = detection.landmarks;
-
+      
       ctx.fillStyle = "blue";
       for (let j = 0; j < landmarks.length; j++) {
         const x = landmarks[j][0];
@@ -35,6 +38,7 @@ const drawFaceContainer = (ctx, detections) => {
         ctx.fillRect(x, y, 5, 5);
       }
     }
+    */
   });
 };
 
@@ -60,8 +64,12 @@ function App() {
   useEffect(() => {
     const timerIntervalId = setInterval(() => {
       (async () => {
-        const model = await blazeface.load();
-        const returnTensors = !true;
+        //const model = await blazeface.load();
+        const model = await faceLandmarksDetection.load(
+          faceLandmarksDetection.SupportedPackages.mediapipeFacemesh
+        );
+        
+        //const returnTensors = !true;
 
         if (
           webcamRef.current !== null &&
@@ -73,16 +81,20 @@ function App() {
           cxtRef.current.width = videoWidth;
           cxtRef.current.height = videoHeight;
 
-          const detections = await model.estimateFaces(video, returnTensors);
+          //const detections = await model.estimateFaces(video, returnTensors);
+          const detections = await model.estimateFaces({
+            input: video,
+          });
 
           const cxt = cxtRef.current.getContext("2d");
 
+          //  && detections.faceInViewConfidence > 0.8
           setFaceCount(detections.length);
 
           drawFaceContainer(cxt, detections);
         }
       })();
-    }, 100);
+    }, 1000);
 
     return () => {
       clearInterval(timerIntervalId);
